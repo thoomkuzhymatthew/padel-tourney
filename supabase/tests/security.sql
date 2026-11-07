@@ -31,6 +31,11 @@ $$;
 
 -- Create via the same anon role used by a browser, not the table owner.
 set local role anon;
+do $$ declare ps jsonb := pg_temp.players(300,4); begin
+  ps := jsonb_set(ps,'{1,name}',to_jsonb(' player  301 '::text));
+  perform pg_temp.rejects(format('select public.create_tournament(%L,%L::jsonb,2,24,%L::jsonb)',
+    'Duplicate guard test',ps,pg_temp.snapshot(ps,1,24,2)), 'duplicate creation with internal spaces');
+end $$;
 do $$ declare credentials record; ps jsonb := pg_temp.players(0, 8); begin
   select * into credentials from public.create_tournament('Security test', ps, 2, 24, pg_temp.snapshot(ps,1,24,2));
   perform set_config('test.share', credentials.share_id, true);
