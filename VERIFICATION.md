@@ -53,3 +53,8 @@ Polish release `a7a1408` was verified on production deployment `dpl_2jBgmQP3sD5K
 The tournament view uses a CSS width media query at 900px to display courts on the left and the live leaderboard on the right. Both panels use the existing snapshot/subscription; no extra API calls or device detection are introduced. The right panel stays sticky and scrolls internally for longer rosters; admin actions remain below the two columns. Below 900px the existing phone toggle and single-panel presentation are retained.
 
 Browser checks cover 900px and 1280px two-column positioning, hidden toggles, 899px and 390px single-panel behaviour, no horizontal overflow, and live point updates while the wide leaderboard remains visible. All six local browser checks, build and lint passed.
+
+
+## Milestone 8 shipping
+
+See [SHIP_CHECKLIST.md](SHIP_CHECKLIST.md) for the final section 12 pass/fail matrix. Shipping application commit `96c641c` was verified on Ready production deployment `dpl_GgtEnQsV5uLTwNa4hcea8zR9AeXt`: all eight production browser checks passed. The dedicated eight-player/two-court test measured 579ms to form a valid player share, 381ms for the other browser session to display a saved score, 12 denied invalid/missing-token admin requests, and zero console/runtime errors. Open Graph metadata and 1200×630 PNG plus icons passed raw-HTTP checks on home and deep routes. All 26 unit tests, lint/build, database lint, SQL security and hosted API/concurrency checks passed. Physical sunlight and native-share observations remain outside automated verification.

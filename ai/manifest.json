@@ -1,17 +1,17 @@
 {
-  "exportedAt": "2026-11-07T20:43:06.155089+00:00",
+  "exportedAt": "2026-11-07T20:45:05.590244+00:00",
   "sources": [
     {
       "sourceFilename": "rollout-2026-11-07T13-37-39-01a1b63a-a51e-7921-820b-e0e23119faa8.jsonl",
       "export": "ai/transcripts/session-2026-11-07T13-37-39-01a1b63a-a51e-7921-820b-e0e23119faa8.jsonl",
       "recordCounts": {
-        "message": 81,
-        "custom_tool_call": 176,
-        "custom_tool_call_output": 176,
+        "message": 83,
+        "custom_tool_call": 182,
+        "custom_tool_call_output": 181,
         "function_call": 1,
         "function_call_output": 1
       },
-      "cutoff": "2026-11-07T20:43:01.146Z"
+      "cutoff": "2026-11-07T20:45:05.417Z"
     }
   ],
   "missing": [],
