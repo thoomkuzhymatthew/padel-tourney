@@ -73,3 +73,14 @@ export default defineConfig([
 ])
 
 ```
+
+
+## Tournament core (milestone 2)
+
+Pure TypeScript lives in `src/lib/rotation.ts` and `src/lib/scoring.ts`, with shared types in `src/lib/types.ts`. Rotation takes the roster, stored round history, court count, target, and optional random source. It returns the next round without mutating history. Persist that round once when the database milestone is implemented.
+
+`scoreMatch` validates Team A’s score and calculates Team B’s complement. `calculateLeaderboard` derives standings from results and each round’s sit-outs; removed players retain results, late joiners receive no retrospective compensation. Pending and explicitly forfeited matches have distinct states. Server authorization and persistence belong to milestone 3.
+
+Run `npm install`, then `npm test` for the Section 6 scenarios, `npm run lint`, and `npm run build`. Use `npm run test:watch` while editing. Tests use seeded randomness for repeatable rotation checks, including 8 players over 7 rounds and 12 players over 11 rounds, every required sit-out roster size, score edits, roster changes, and leaderboard tie-breaks.
+
+Environment files (`.env` and `.env.*`) are ignored. Configure local credentials yourself; do not commit secrets. Only Supabase’s publishable/anon key may be used in frontend configuration.
