@@ -81,6 +81,8 @@ do $$ declare s text := current_setting('test.share'); token text := current_set
   end;
   perform pg_temp.rejects(format('select public.rename_player(%L,%L,%L)',s,pid,'  '), 'empty name');
   perform pg_temp.rejects(format('select public.rename_player(%L,%L,%L)',s,pid,'Player 2'), 'duplicate name');
+  perform pg_temp.rejects(format('select public.rename_player(%L,%L,%L)',s,pid,' PLAYER   2 '), 'duplicate with case and internal spacing');
+  perform pg_temp.rejects(format('select public.add_player(%L,%L,%L)',s,token,' player  2 '), 'duplicate added name with spacing');
   perform public.rename_player(s,pid,'Renamed');
   perform pg_temp.check_that((select name='Player 1' and pending_name='Renamed' from public.players where id=pid), 'rename pending until next draw');
   perform pg_temp.check_that((public.get_tournament_snapshot(s)#>>'{rounds,0,names,00000000-0000-0000-0000-000000000001}')='Player 1', 'current round keeps original name');

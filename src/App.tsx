@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { defaultTournamentName, normalizeName, splitNames, validateNames } from './lib/create-form'
+import { cleanName, defaultTournamentName, normalizeName, splitNames, validateNames } from './lib/create-form'
 import { backendConfigured, createTournament, loadTournament } from './lib/tournament-api'
 import type { TournamentSummary } from './lib/tournament-api'
 import { readTournaments, saveTournament, tournamentPath, validToken } from './lib/tournament-storage'
-import TournamentView from './components/TournamentView'
+const TournamentView = lazy(() => import('./components/TournamentView'))
 import './App.css'
 
 function Brand() {
@@ -56,8 +56,12 @@ function Create() {
   const draftRef = useRef<HTMLInputElement>(null)
   const inFlight = useRef(false)
   const [defaultName] = useState(defaultTournamentName)
-  const playerError = names.length >= 4 ? validateNames(names) : null
+  const duplicate = names.some((name, i) => name.trim() && names.some((other, j) => j !== i && normalizeName(name) === normalizeName(other)))
+  const draftDuplicate = splitNames(draft).find(name => names.some(other => normalizeName(name) === normalizeName(other)))
+  const playerError = duplicate ? 'Two players have the same name. Add an initial to tell them apart.' : names.length >= 4 ? validateNames(names) : null
   const usedCourts = Math.min(courts, Math.floor(names.length / 4))
+
+  useEffect(() => { if (error && !busy) draftRef.current?.focus() }, [error, busy])
 
   function append(text: string) {
     const additions = splitNames(text)
@@ -89,7 +93,7 @@ function Create() {
     inFlight.current = true
     setBusy(true)
     try {
-      const { tournament, summary } = await createTournament({ name: name.trim() || defaultName, names: finalNames, courts, target })
+      const { tournament, summary } = await createTournament({ name: name.trim() || defaultName, names: finalNames.map(cleanName), courts, target })
       saveTournament(tournament)
       navigate(tournamentPath(tournament, true), { replace: true, state: { summary } })
     } catch {
@@ -110,17 +114,19 @@ function Create() {
           <p className="field-help" id="names-help">Add at least 4. Press Enter for the next name, or paste a list.</p>
           <ol className="player-list">{names.map((playerName, i) => <li key={i}>
             <span className="player-number" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
-            <input aria-label={`Player ${i + 1} name`} value={playerName} maxLength={60} autoComplete="off"
+            <input aria-describedby={duplicate ? "player-name-error" : undefined} aria-label={`Player ${i + 1} name`} value={playerName} maxLength={60} autoComplete="off"
               aria-invalid={!playerName.trim() || names.some((n, j) => j !== i && normalizeName(n) === normalizeName(playerName))}
               onChange={e => { setNames(names.map((n, j) => j === i ? e.target.value : n)); setError('') }}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); draftRef.current?.focus() } }} />
             <button className="icon-button" type="button" aria-label={`Remove player ${i + 1}`} onClick={() => setNames(names.filter((_, j) => j !== i))}>×</button>
           </li>)}</ol>
-          <div className="add-player"><input id="add-player" ref={draftRef} aria-label="Add a player" aria-describedby="names-help" value={draft} placeholder={names.length ? 'Next player’s name' : 'Player’s name'} autoComplete="off" maxLength={2500}
+          <div className="add-player"><input id="add-player" ref={draftRef} aria-label="Add a player" aria-describedby={draftDuplicate ? "draft-name-error" : "names-help"} aria-invalid={Boolean(draftDuplicate)} value={draft} placeholder={names.length ? 'Next player’s name' : 'Player’s name'} autoComplete="off" maxLength={2500}
             onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); append(draft) } }}
             onPaste={e => { const text = e.clipboardData.getData('text'); if (/[\n,\r]/.test(text)) { e.preventDefault(); append(text) } }} />
-            <button className="icon-button add-button" type="button" aria-label="Add player" onClick={() => append(draft)} disabled={!draft.trim() || names.length >= 40}>+</button></div>
-          {playerError && <p className="field-error">{playerError}</p>}
+            <button className="icon-button add-button" type="button" aria-label="Add player" onClick={() => append(draft)} disabled={!draft.trim() || names.length >= 40 || Boolean(draftDuplicate)}>+</button></div>
+          {draftDuplicate && <p className="field-error" id="draft-name-error" role="status">“{draftDuplicate}” is already added. Use a surname or initial.</p>}
+          {playerError && <p className="field-error" id="player-name-error" role="status">{playerError}</p>}
+          {error && <p className="field-error" role="alert">{error}</p>}
         </section>
         <section className="courts-section" aria-labelledby="courts-heading"><div className="section-title"><h2 id="courts-heading">Courts</h2>
           <div className="stepper"><button type="button" className="icon-button" aria-label="Fewer courts" disabled={courts <= 1} onClick={() => setCourts(courts - 1)}>−</button><output aria-label="Court count">{courts}</output><button type="button" className="icon-button" aria-label="More courts" disabled={courts >= 10} onClick={() => setCourts(courts + 1)}>+</button></div></div>
@@ -129,8 +135,7 @@ function Create() {
         <fieldset className="points-section"><legend>Points per match</legend><div className="points-options">{[16, 21, 24, 32].map(points => <label className={target === points ? 'point-chip selected' : 'point-chip'} key={points}><input type="radio" name="points" value={points} checked={target === points} onChange={() => setTarget(points)} /><span>{points}</span></label>)}</div><p className="field-help">Both teams’ scores add up to this total.</p></fieldset>
       </fieldset>
       {!backendConfigured && <p className="notice" role="alert">Tournament setup is unavailable. Please try again later.</p>}
-      {error && <p className="notice" role="alert">{error}</p>}
-      <div className="form-action"><button className="button primary" type="submit" disabled={busy || !backendConfigured}>{busy ? 'Creating tournament…' : 'Start'}<span aria-hidden="true">→</span></button></div>
+      <div className="form-action"><button className="button primary" type="submit" disabled={busy || !backendConfigured || duplicate || Boolean(draftDuplicate)}>{busy ? 'Creating tournament…' : 'Start'}<span aria-hidden="true">→</span></button></div>
     </form>
   </main>
 }
@@ -226,7 +231,7 @@ function App() {
   return <BrowserRouter><RouteFocus /><header className="site-header"><div className="header-inner"><Brand /><span className="header-note">Made for the court.</span></div></header><Routes>
     <Route path="/" element={<Home />} /><Route path="/create" element={<Create />} />
     <Route path="/t/:shareId/links" element={<LinksScreen />} />
-    <Route path="/t/:shareId/admin" element={<TournamentView />} /><Route path="/t/:shareId" element={<TournamentView />} />
+    <Route path="/t/:shareId/admin" element={<Suspense fallback={<main className="page narrow-page"><p className="loading" role="status">Loading tournament…</p></main>}><TournamentView /></Suspense>} /><Route path="/t/:shareId" element={<Suspense fallback={<main className="page narrow-page"><p className="loading" role="status">Loading tournament…</p></main>}><TournamentView /></Suspense>} />
     <Route path="*" element={<NotFound />} />
   </Routes><footer className="site-footer"><span>Padel Genie</span><span>A little less organising. A lot more padel.</span></footer></BrowserRouter>
 }
