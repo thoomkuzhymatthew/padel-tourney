@@ -8,7 +8,8 @@ import { spawnSync } from 'node:child_process'
 const rehearse = process.argv.includes('--rehearse')
 const remote = process.argv.includes('--remote')
 const seed = process.argv.includes('--with-seed') ? readFileSync('supabase/seed.sql', 'utf8') : ''
-const migrations = rehearse ? readdirSync('supabase/migrations').filter(f => f.endsWith('.sql')).sort()
+const migrationArg = process.argv.find(arg => arg.startsWith('--migration='))?.split('=')[1]
+const migrations = migrationArg ? readFileSync(join('supabase/migrations', migrationArg), 'utf8') : rehearse ? readdirSync('supabase/migrations').filter(f => f.endsWith('.sql')).sort()
   .map(f => readFileSync(join('supabase/migrations', f), 'utf8')).join('\n') : ''
 const temp = mkdtempSync(join(tmpdir(), 'padel-db-test-'))
 try {

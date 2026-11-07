@@ -110,8 +110,8 @@ If players are fewer than `courts × 4`, use only `floor(players / 4)` courts an
 
 - **Admin** can tap any past match and edit its score; the leaderboard recalculates automatically.
 - **Players** can enter or change scores only for matches in the current round.
-- Admin can add or remove players **between rounds**. A late joiner starts on 0 points; record this in `ASSUMPTIONS.md`. A removed player keeps their past results but is excluded from future rounds.
-- Player names can be edited from either link; the admin can always correct them.
+- Admin can add or remove players **at any time**, taking effect from the next round drawn. A late joiner starts on 0 points and is labelled “Joins from round N”. A removed player keeps their current match and past results but is excluded from future draws.
+- Player names can be edited from either link at any time; changes take effect from the next round drawn. Current and past rounds retain their drawn names. Past rounds are viewable on both links, but only admin mode can edit past scores.
 
 **Ending:**
 

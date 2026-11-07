@@ -7,8 +7,12 @@
 - Round targets are positive integers; match scores are integers, while compensation may include half points.
 - Database names are trimmed and limited to 60 characters per player and 100 per tournament; duplicate player names ignore case and surrounding whitespace, including inactive players.
 - The supported roster is 4–40 active players and 1–10 courts, matching the brief’s approximate upper size.
-- Between rounds means the latest round is complete; newly added players join the following round, and removal cannot reduce the active roster below four.
+- Approved update: roster edits work during any active round and affect the next draw. Removal cannot reduce the next roster below four; existing matches remain scoreable.
 - Admins may correct past scores after ending a tournament; player writes stop once it is finished.
 - Resume reopens the tournament’s links screen; Open tournament goes directly to its admin route.
 - If creation’s response is interrupted, the tournament may already exist; do not automatically retry the non-idempotent creation RPC.
-- The milestone 4 admin/player destination is a real read-only round draw; interactive scoring and standings remain milestone 5.
+- Milestones 5 and 6 replace the read-only milestone 4 draw with a shared interactive view; player history remains read-only.
+- Pending renames are applied when the next round is drawn; each round retains a player-name snapshot, and standings use the latest effective names.
+- Existing rounds created before name snapshots were introduced are backfilled with the names currently stored; earlier unrecorded spellings cannot be reconstructed.
+- Multiple pending edits to a name replace its pending value; duplicate checks include current and pending names, so simultaneous name swaps are rejected.
+- A late joiner removed before their first round remains on the roster history with zero points and no compensation.

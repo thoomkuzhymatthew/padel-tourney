@@ -25,7 +25,7 @@ Reads of every public application table require the HTTP header `x-tournament-sh
 
 `set_round_target` changes the default target for the next round. `start_next_round` stores that new round’s immutable target. Old scores and sit-out compensation remain attached to their original targets. `p_confirm_unscored: true` explicitly forfeits pending matches as 0–0; normal scores must sum to the round target. Admin overrides can replace forfeitures and correct results after ending; player writes stop when finished.
 
-Names are trimmed, 1–60 characters for players, 1–100 for tournament names; player names are unique ignoring case/outer whitespace, including removed players. There are 4–40 active players and 1–10 courts. Roster changes happen once the latest round is complete; late joiners begin next round. Removed players retain historical matches.
+Names are trimmed, 1–60 characters for players, 1–100 for tournament names; player names are unique ignoring case/outer whitespace, including removed players. There are 4–40 active players and 1–10 courts. Roster changes can happen during any active round. Late joiners begin the next draw; removals exclude players from future draws while preserving existing matches. Renames are queued in pending_name and applied on advancement; rounds store player_names snapshots so historical names remain as drawn.
 
 ## Security and Realtime
 
@@ -44,3 +44,10 @@ References: https://supabase.com/docs/guides/database/functions and https://supa
 The migrations were first rehearsed inside a rolled-back transaction, then applied through the authenticated CLI. Post-deployment SQL security/lifecycle tests passed, including the local seed executed inside a rolled-back transaction. Actual anon-key REST and WebSocket checks passed: scoped reads, hidden secrets, rejected direct writes and invalid tokens, rejected cross-tournament scoring, admin overrides, live invalidation delivery, and two simultaneous next-round requests producing exactly one new round. Fixtures were removed afterward. Database lint reports no schema issues. The local Docker stack was not run on this machine.
 
 Supabase security advisors report the expected `anon_security_definer_function_executable` and `authenticated_security_definer_function_executable` warnings for the nine public RPCs. This exposure is deliberate for the brief’s no-account model and explicitly granted in the migration. Admin functions require a valid tournament-specific token; player functions require the share capability and enforce membership/current-round rules. Internal helpers remain inaccessible. Do not blindly revoke these API grants to silence the warnings; retain and rerun the permission tests when changing them.
+
+
+## Milestones 5 and 6
+
+Migration `20261107160000_live_tournament_and_roster.sql` implements the approved next-draw roster changes, round name snapshots, the share-scoped `get_tournament_snapshot` read RPC, and optimistic score concurrency. The read RPC is `SECURITY INVOKER` and requires the share header as well as its matching share argument; it never reads private tables. Score RPCs now accept optional `p_expected_updated_at`, which the UI always supplies. A stale value raises SQLSTATE `40001` rather than overwriting a more recent score.
+
+For a rehearsal of just a new migration against an already-migrated target, use `node scripts/test-database.mjs --remote --migration=<filename.sql>`; changes and test fixtures roll back together. Full `--rehearse` is reserved for empty targets. The updated SQL suite verifies next-round additions and removals, pending renames, stable historical names, snapshot scope, and stale score rejection in addition to the existing permissions and lifecycle checks.

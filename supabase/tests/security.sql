@@ -8,7 +8,7 @@ language plpgsql as $$ begin
   begin
     execute statement;
   exception when others then
-    if sqlstate not in ('P0001','P0002','42501','23514','23502','23505','22P02','22023','22003') then raise; end if;
+    if sqlstate not in ('P0001','P0002','42501','23514','23502','23505','22P02','22023','22003','40001') then raise; end if;
     return;
   end;
   raise exception 'TEST FAILED: accepted %', message;
@@ -43,9 +43,12 @@ do $$ declare credentials record; ps jsonb := pg_temp.players(0, 8); begin
   perform pg_temp.check_that(credentials.admin_token <> current_setting('test.admin'), 'unique tokens');
 end $$;
 select pg_temp.check_that((select count(*) from public.tournaments)=0, 'no header means no read access');
+select pg_temp.check_that(public.get_tournament_snapshot(current_setting('test.share')) is null, 'snapshot denies unscoped reads');
 select set_config('request.headers', jsonb_build_object('x-tournament-share-id', current_setting('test.share'))::text, true) is not null as header_set;
 select pg_temp.check_that((select count(*) from public.tournaments)=1, 'share scope isolates tournaments');
 select pg_temp.check_that((select count(*) from public.players)=8, 'share scope isolates players');
+select pg_temp.check_that(public.get_tournament_snapshot(current_setting('test.other_share')) is null, 'snapshot share must match header');
+select pg_temp.check_that(public.get_tournament_snapshot(current_setting('test.share'))::text not like '%admin_token%', 'snapshot exposes no admin credential fields');
 select pg_temp.check_that((select count(*) from public.matches)=2, 'share scope isolates matches');
 select pg_temp.check_that((select count(*) from public.rounds)=1, 'share scope isolates rounds');
 select pg_temp.check_that((select count(*) from public.sit_outs)=0, 'share scope isolates sit-outs');
@@ -71,11 +74,21 @@ do $$ declare s text := current_setting('test.share'); token text := current_set
   perform pg_temp.rejects(format('select public.rename_player(%L,%L,%L)',current_setting('test.other_share'),pid,'Changed'), 'cross tournament player');
   perform pg_temp.rejects(format('select public.submit_score(%L,%L,15,8)',s,match_id), 'wrong score sum');
   perform pg_temp.rejects(format('select public.submit_score(%L,%L,-1,25)',s,match_id), 'negative score');
-  perform pg_temp.rejects(format('select public.add_player(%L,%L,%L)',s,token,'Too early'), 'midround roster edit');
+  declare pending_id uuid; begin
+    pending_id := public.add_player(s,token,'Midround joiner');
+    perform pg_temp.check_that((select joined_round=2 from public.players where id=pending_id), 'midround add joins next round');
+    perform public.remove_player(s,token,pending_id);
+  end;
   perform pg_temp.rejects(format('select public.rename_player(%L,%L,%L)',s,pid,'  '), 'empty name');
   perform pg_temp.rejects(format('select public.rename_player(%L,%L,%L)',s,pid,'Player 2'), 'duplicate name');
   perform public.rename_player(s,pid,'Renamed');
-  perform public.submit_score(s,match_id,15,9);
+  perform pg_temp.check_that((select name='Player 1' and pending_name='Renamed' from public.players where id=pid), 'rename pending until next draw');
+  perform pg_temp.check_that((public.get_tournament_snapshot(s)#>>'{rounds,0,names,00000000-0000-0000-0000-000000000001}')='Player 1', 'current round keeps original name');
+  declare version timestamptz; begin
+    select updated_at into version from public.matches where id=match_id;
+    perform public.submit_score(s,match_id,15,9,version);
+    perform pg_temp.rejects(format('select public.submit_score(%L,%L,12,12,%L::timestamptz)',s,match_id,version-interval '1 second'), 'stale score update');
+  end;
   perform pg_temp.check_that((select entered_by='player' and score_a=15 and score_b=9 from public.matches where id=match_id), 'player score audit');
   next_round := pg_temp.snapshot(ps,2,21,2);
   perform pg_temp.rejects(format('select public.start_next_round(%L,%L,21,%L::jsonb)',s,token,next_round), 'early advance without confirmation');
@@ -87,6 +100,9 @@ do $$ declare s text := current_setting('test.share'); token text := current_set
   perform public.set_round_target(s,token,21);
   perform pg_temp.check_that((select target from public.rounds where number=1)=24, 'past target stays immutable');
   perform public.start_next_round(s,token,21,next_round,true);
+  perform pg_temp.check_that((select name='Renamed' and pending_name is null from public.players where id=pid), 'pending rename applied at draw');
+  perform pg_temp.check_that((public.get_tournament_snapshot(s)#>>'{rounds,0,names,00000000-0000-0000-0000-000000000001}')='Player 1', 'past name preserved after rename');
+  perform pg_temp.check_that((public.get_tournament_snapshot(s)#>>'{rounds,1,names,00000000-0000-0000-0000-000000000001}')='Renamed', 'new round uses renamed player');
   perform pg_temp.check_that((select count(*) from public.matches where result_status='forfeited' and score_a=0 and score_b=0)=1, 'confirmed zero-zero forfeiture');
   perform pg_temp.rejects(format('select public.start_next_round(%L,%L,21,%L::jsonb,true)',s,token,next_round), 'duplicate next round');
   perform pg_temp.rejects(format('select public.submit_score(%L,%L,12,12)',s,match_id), 'player past score');
