@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { RealtimeClient } from '@supabase/realtime-js'
-import { getTournament, supabasePublicKey, supabaseUrl } from '../lib/tournament-api'
+import { cachedTournament, getTournament, supabasePublicKey, supabaseUrl } from '../lib/tournament-api'
 import type { TournamentData } from '../lib/tournament-api'
 
 export function useLiveTournament(shareId: string) {
-  const [state, setState] = useState<{ shareId: string; data: TournamentData | null; error: string }>({ shareId, data: null, error: '' })
+  const [state, setState] = useState<{ shareId: string; data: TournamentData | null; error: string }>(() => ({ shareId, data: cachedTournament(shareId), error: '' }))
   const [live, setLive] = useState(false)
-  const [attempt, setAttempt] = useState(0)
-  const retry = useCallback(() => setAttempt(n => n + 1), [])
+  const [connection, setConnection] = useState(0)
+  const reloadRef = useRef<() => void>(() => {})
+  const retry = useCallback(() => reloadRef.current(), [])
   useEffect(() => {
     let active = true
     let fetching = false
@@ -28,9 +29,10 @@ export function useLiveTournament(shareId: string) {
       } while (dirty && active)
       fetching = false
     }
+    reloadRef.current = () => { void refresh() }
     const schedule = () => { clearTimeout(timer); timer = setTimeout(() => { void refresh() }, 70) }
     const offline = () => { setLive(false); client?.disconnect() }
-    const online = () => setAttempt(n => n + 1)
+    const online = () => setConnection(n => n + 1)
     const visible = () => { if (document.visibilityState === 'visible') void refresh() }
     const client = supabaseUrl && supabasePublicKey ? new RealtimeClient(`${supabaseUrl}/realtime/v1`, {
       params: { apikey: supabasePublicKey }, heartbeatIntervalMs: 10000,
@@ -50,11 +52,11 @@ export function useLiveTournament(shareId: string) {
     // reconnects remain the primary live transport.
     const recovery = setInterval(() => { if (document.visibilityState === 'visible' && navigator.onLine) void refresh() }, 15000)
     return () => {
-      active = false; clearTimeout(timer); clearInterval(recovery)
+      active = false; reloadRef.current = () => {}; clearTimeout(timer); clearInterval(recovery)
       window.removeEventListener('offline', offline); window.removeEventListener('online', online)
       document.removeEventListener('visibilitychange', visible)
       void client?.removeAllChannels(); client?.disconnect()
     }
-  }, [shareId, attempt])
+  }, [shareId, connection])
   return { data: state.shareId === shareId ? state.data : null, error: state.shareId === shareId ? state.error : '', live, refresh: retry }
 }

@@ -16,3 +16,6 @@
 - Existing rounds created before name snapshots were introduced are backfilled with the names currently stored; earlier unrecorded spellings cannot be reconstructed.
 - Multiple pending edits to a name replace its pending value; duplicate checks include current and pending names, so simultaneous name swaps are rejected.
 - A late joiner removed before their first round remains on the roster history with zero points and no compensation.
+- Repeated whitespace, outer whitespace and letter case do not distinguish player names; no fuzzy matching or automatic player merging is used.
+- Existing names are left intact by the duplicate-guard migration; validation applies to subsequent inserts and name changes.
+- The in-memory navigation cache contains public tournament snapshots only and is revalidated; admin credentials are never placed in it.

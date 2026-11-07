@@ -69,10 +69,10 @@ export default function TournamentView() {
   async function end() {
     if (await action('end_tournament', {}, 'Tournament ended.')) { setConfirm(null); setTab('leaderboard'); setBrowseFinished(false) }
   }
-  function selectTab(next: 'round' | 'leaderboard') { setTab(next); if (finished) setBrowseFinished(true) }
+  function selectTab(next: 'round' | 'leaderboard') { setTab(next); window.scrollTo({ top: 0, behavior: 'instant' }); if (finished) setBrowseFinished(true) }
   return <main className={`page narrow-page tournament-page ${token && !finished ? 'with-admin-bar' : ''}`}>
     <div className="tournament-heading"><div><h1>{data.name}</h1><p className="round-subtitle">{finished ? 'Finished · ' : ''}Round {selected.number} · to {selected.target} points</p></div>
-      {token && <details ref={menuRef} className="tournament-menu"><summary aria-label="Tournament menu">···</summary><div><Link to={tournamentPath({ shareId, adminToken: token },true)}>Share links</Link>{!finished && <button onClick={() => { setError(''); setConfirm('end'); if (menuRef.current) menuRef.current.open = false }}>End tournament…</button>}</div></details>}
+      {token && <details ref={menuRef} className="tournament-menu"><summary aria-label="Tournament menu">···</summary><div><Link to={tournamentPath({ shareId, adminToken: token },true)}>Share links</Link></div></details>}
     </div>
     <div className="tournament-toolbar"><label className="round-picker">View round<select aria-label="View round" value={selected.number} onChange={event => { setRoundNumber(Number(event.target.value) === latest.number ? null : Number(event.target.value)); setTab('round'); if (finished) setBrowseFinished(true) }}>{[...data.rounds].reverse().map(round => <option value={round.number} key={round.id}>Round {round.number}{round.id === latest.id ? ' · latest' : ''}</option>)}</select></label>
       <button className="button secondary players-toggle" onClick={() => setPlayersOpen(true)}>Players</button></div>
@@ -97,7 +97,7 @@ export default function TournamentView() {
       </>}
     </div>
     <div className="tournament-dock"><div className="tournament-tabs" role="tablist" aria-label="Tournament view"><button role="tab" id="round-tab" aria-selected={activeTab === 'round'} aria-controls="tournament-panel" onClick={() => selectTab('round')}>Round</button><button role="tab" id="leaderboard-tab" aria-selected={activeTab === 'leaderboard'} aria-controls="tournament-panel" onClick={() => selectTab('leaderboard')}>Leaderboard</button></div>
-      {token && !finished && <div className="admin-bar"><div className="next-target"><label htmlFor="next-target">Next round’s points</label><select id="next-target" value={data.defaultTarget} disabled={busy} onChange={event => { void action('set_round_target',{p_target:Number(event.target.value)},'Next round’s target updated.') }}>{[...new Set([16,21,24,32,data.defaultTarget])].sort((a,b)=>a-b).map(target => <option key={target} value={target}>{target}</option>)}</select></div>
+      {token && !finished && <div className="admin-bar"><div className="next-target"><div className="target-control"><label htmlFor="next-target">Next round’s points</label><select id="next-target" value={data.defaultTarget} disabled={busy} onChange={event => { void action('set_round_target',{p_target:Number(event.target.value)},'Next round’s target updated.') }}>{[...new Set([16,21,24,32,data.defaultTarget])].sort((a,b)=>a-b).map(target => <option key={target} value={target}>{target}</option>)}</select></div><button className="button end-tournament" disabled={busy} onClick={() => { setError(''); setConfirm('end') }}>End tournament</button></div>
         <button className="button primary" disabled={!scoresComplete || busy || !live} onClick={() => advance()}>{busy ? 'Saving…' : `Start round ${latest.number + 1}`}<span aria-hidden="true">→</span></button>
         {!scoresComplete && <div className="early-start"><span>{pending.length} {pending.length === 1 ? 'score' : 'scores'} to come</span><button disabled={busy || !live} onClick={() => { setError(''); setConfirm('early') }}>Start early…</button></div>}
       </div>}

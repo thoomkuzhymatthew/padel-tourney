@@ -24,6 +24,8 @@ test('two mobile sessions run, edit, reconnect and finish a live tournament', as
   const admin = await adminDevice.newPage()
   const player = await playerDevice.newPage()
   const pageErrors: string[] = []
+  let adminSockets = 0
+  admin.on('websocket', () => adminSockets++)
   admin.on('pageerror', error => pageErrors.push(error.name))
   player.on('pageerror', error => pageErrors.push(error.name))
   let share = ''
@@ -52,9 +54,15 @@ test('two mobile sessions run, edit, reconnect and finish a live tournament', as
     // Roster edits during an unscored round must not change its draw or names.
     await admin.getByRole('button', { name: 'Players', exact: true }).click()
     const roster = admin.getByRole('dialog')
+    await roster.getByLabel('New player’s name').fill(' alex ')
+    await expect(roster.locator('#roster-name-error')).toContainText('already in use')
+    await expect(roster.getByRole('button', { name: 'Add player', exact: true })).toBeDisabled()
+    await admin.setViewportSize({width:390,height:560})
     await roster.getByLabel('New player’s name').fill('Late joiner')
     await roster.getByRole('button', { name: 'Add player', exact: true }).click()
     await expect(roster.getByText('Joins from round 2', { exact: true })).toBeVisible()
+    await admin.setViewportSize({width:390,height:844})
+    await roster.screenshot({path:'artifacts/players-sheet-mobile.png'})
     await roster.getByRole('button', { name: 'Rename Alex', exact: true }).click()
     await roster.getByRole('textbox', { name: 'Rename Alex', exact: true }).fill('Alex R')
     await roster.getByRole('button', { name: 'Save name' }).click()
@@ -75,6 +83,7 @@ test('two mobile sessions run, edit, reconnect and finish a live tournament', as
     await expect(admin.locator('.draw-list')).not.toContainText('Casey P')
 
     // A save in one session reaches the other through Realtime.
+    const connectionsBeforeSave = adminSockets
     const scoreStarted = Date.now()
     await enterScore(player, 1, 15)
     await expect(admin.getByRole('region', { name: 'Court 1', exact: true }).locator('.court-score')).toContainText('15', { timeout: 5000 })
@@ -89,6 +98,7 @@ test('two mobile sessions run, edit, reconnect and finish a live tournament', as
     await staleSheet.getByRole('button', { name: 'Review latest score' }).click()
     await expect(staleSheet.locator('.score-preview strong').first()).toHaveText('16')
     await staleSheet.getByRole('button', { name: 'Close', exact: true }).click()
+    expect(adminSockets, 'Saving and refreshing must retain the live connection').toBe(connectionsBeforeSave)
     await enterScore(player, 2, 12)
     await expect(admin.getByRole('button', { name: 'Start round 2', exact: true })).toBeEnabled()
 
@@ -106,6 +116,7 @@ test('two mobile sessions run, edit, reconnect and finish a live tournament', as
     // Both links can browse history, but the player gets no editing controls.
     await player.getByLabel('View round').selectOption('1')
     await expect(player.getByText('Past round. Scores are read-only.')).toBeVisible()
+    await player.screenshot({path:'artifacts/past-round-mobile.png',fullPage:false})
     await expect(player.locator('.draw-list button')).toHaveCount(0)
     await expect(player.locator('.court-score').first()).toContainText('16')
     await admin.getByLabel('View round').selectOption('1')
@@ -135,6 +146,7 @@ test('two mobile sessions run, edit, reconnect and finish a live tournament', as
     // Early advancement explicitly forfeits only the pending match.
     await admin.getByRole('button',{name:'Start early…'}).click()
     await expect(admin.getByRole('dialog')).toContainText('Court 2 has no score')
+    await admin.getByRole('dialog').screenshot({path:'artifacts/early-start-mobile.png'})
     await admin.getByRole('dialog').getByRole('button',{name:'Start round 3 with 0–0'}).click()
     await expect(player.locator('.round-subtitle')).toContainText('Round 3')
     await player.getByLabel('View round').selectOption('2')
@@ -143,11 +155,12 @@ test('two mobile sessions run, edit, reconnect and finish a live tournament', as
     await enterScore(admin,2,11)
     await expect(player.getByRole('region',{name:'Court 2',exact:true}).locator('.court-score')).toContainText('11')
 
-    await admin.getByLabel('Tournament menu').click()
-    await admin.getByRole('button',{name:'End tournament…',exact:true}).click()
+    await admin.getByRole('button',{name:'End tournament',exact:true}).click()
+    await admin.getByRole('dialog').screenshot({path:'artifacts/end-confirm-mobile.png'})
     await admin.getByRole('dialog').getByRole('button',{name:'End tournament',exact:true}).click()
     await expect(admin.getByRole('heading',{name:'Final standings'})).toBeVisible()
     await expect(player.getByRole('heading',{name:'Final standings'})).toBeVisible()
+    await player.screenshot({path:'artifacts/final-standings-mobile.png',fullPage:false})
     await expect(admin.locator('.admin-bar')).toHaveCount(0)
     await player.getByRole('tab',{name:'Round',exact:true}).click()
     await expect(player.locator('.draw-list button')).toHaveCount(0)

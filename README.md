@@ -30,9 +30,9 @@ Run `npm run dev`. Vercel needs the same public environment variables when deplo
 
 ## Validation
 
-- `npm test`: 22 seeded pure-logic tests for pairing, sit-outs, scoring, historical edits, target changes, roster changes and tie-breaks.
+- `npm test`: 23 pure-logic tests for pairing, sit-outs, scoring, historical edits, target changes, roster changes and tie-breaks.
 - `npm run lint` and `npm run build`: lint and production type/build checks.
-- `npx playwright install chromium`, then `npm run test:e2e`: five browser checks at 390×844 and desktop, including actual Supabase creation, resume, double-submit protection, RPC failure, blocked storage, copy/share fallbacks, and a full two-session tournament lifecycle. These tests use the configured project and authenticated Supabase CLI to remove their synthetic fixtures; run them against a development project.
+- `npx playwright install chromium`, then `npm run test:e2e`: six browser checks at 390×844 and desktop, including actual Supabase creation, resume, double-submit protection, RPC failure, blocked storage, copy/share fallbacks, and a full two-session tournament lifecycle. These tests use the configured project and authenticated Supabase CLI to remove their synthetic fixtures; run them against a development project.
 - Browser screenshots are generated under ignored `artifacts/`. Traces and automatic failure screenshots are disabled to avoid retaining private links.
 
 The database has versioned migrations, RLS, RPCs, a local seed, and SQL/API security checks. See [supabase/README.md](supabase/README.md) for migration commands, authorization details and the client contract. Local Docker verification is separate from the hosted tests already run.
@@ -61,3 +61,6 @@ To run the same browser checks against the deployed app: `E2E_BASE_URL=https://p
 
 
 See [VERIFICATION.md](VERIFICATION.md) for the local and live milestone 5/6 test results and the physical-device testing limit.
+
+
+Section 8 polish adds a visible confirmed End action, immediate duplicate-name guidance, locally served fonts and lighter initial loading. Shared snapshots avoid duplicate reads, and data refreshes retain the Realtime subscription. See VERIFICATION.md for the measured baseline and review scope.

@@ -25,3 +25,10 @@
 - Subscribe through the small Realtime client package; debounce invalidations, refetch on rejoin/focus, and rebuild the subscription after an offline/online transition.
 - Keep confirmed results visible while reconnecting and stop advancement until the live subscription returns.
 - Verify cross-device behaviour with independent 390×844 mobile browser contexts locally and against the Vercel deployment; physical phones require a human check.
+- Replace five links-screen reads with one shared snapshot request; deduplicate in-flight reads and retain up to eight public snapshots in memory for immediate navigation.
+- Refresh data without restarting Realtime after each mutation; rebuild only for tournament changes or reconnect recovery.
+- Lazy-load the tournament view and self-host the two Latin variable fonts with swap behaviour, removing render-blocking Google Fonts CSS.
+- Move End tournament into the visible admin dock as a secondary terracotta action, while retaining explicit confirmation.
+- Show duplicate errors beside name inputs before requests, highlight both duplicate rows, and disable Start/Save for a known clash; compare names case-insensitively with collapsed whitespace on both client and server.
+- Guard future database name writes without rewriting existing player names or historical round snapshots.
+- Increase important status/helper text to 14px, reset tab scroll position, and reserve enough content space above the larger admin dock.

@@ -34,3 +34,13 @@ The test exercised:
 These were browser-emulated devices, not two physical phones. A real-phone sunlight, keyboard and native-share review remains for milestone 7/final handover. Native sharing is implemented; automated coverage verifies copy and fallback paths rather than a physical operating-system share sheet. No physical-device test is claimed.
 
 The production configuration uses the confirmed Supabase URL and public publishable key. Backend admin tokens remain hashed in the private schema, while the organiser’s browser retains the bearer credential as specified for recovery. The repository is also attached to a separate Vercel project; verification here concerns only the Padel Genie app named above.
+
+## Section 8 polish — 7 November 2026
+
+Before changes, the principal snapshot query averaged 2.13ms over 325 calls (maximum 16.13ms). Two read-only HTTPS samples took 312ms and 128ms; the sampled live home and round screens became ready in 740ms and 483ms respectively. These are limited measurements from this machine, not a reproduction of the user's phone/network delay.
+
+The links screen now uses one snapshot RPC rather than five table reads. In-flight requests are deduplicated, navigation can reuse a public in-memory snapshot, and explicit refreshes retain the existing Realtime socket. Initial JavaScript fell from about 110KB gzip to 89KB gzip, with tournament-only code in a separate approximately 23KB gzip chunk. Fonts are served locally as two variable WOFF2 assets with font-display: swap; the Google Fonts stylesheet is removed.
+
+End tournament is visible in the admin dock and still requires confirmation. Duplicate checks now give immediate, input-adjacent guidance for case/whitespace variants and pending names, highlight duplicate rows, and disable submission for known conflicts. The database guard covers creation, additions and pending renames without rewriting historical names.
+
+The 390px review covers home, create, links, current and past rounds, leaderboard, Players, score entry, early-start and end confirmations, final standings, and failure/empty states. Important status text is at least 14px; controls retain 48px minimum targets. The brand colours retain measured contrast against cream of 17.06:1 for ink, 11.25:1 for green, and 4.84:1 for terracotta. The review also checks long names, malformed gateway responses, reduced-height viewports for keyboard space, safe dock padding, and overflow. Actual sunlight and physical virtual-keyboard testing still require a phone.

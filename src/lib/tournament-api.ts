@@ -15,9 +15,11 @@ async function request(path: string, options: RequestInit = {}, shareId?: string
       ...(shareId ? { 'x-tournament-share-id': shareId } : {}), ...options.headers },
     referrerPolicy: 'no-referrer',
     signal: AbortSignal.timeout(25000),
-  })
+  }).catch(() => { throw new Error('Couldn’t reach the tournament. Check your connection and try again.') })
   const text = await response.text()
-  const data = text ? JSON.parse(text) : null
+  let data
+  try { data = text ? JSON.parse(text) : null }
+  catch { throw new Error('The connection returned an incomplete response. Please try again.') }
   if (!response.ok) {
     const code = data?.code ?? ''
     const messages: Record<string, string> = {
@@ -64,23 +66,13 @@ export interface TournamentSummary {
 
 export async function loadTournament(shareId: string): Promise<TournamentSummary> {
   if (!validShare(shareId)) throw new Error('This tournament link doesn’t look right. Ask the organiser for a new link.')
-  const [tournaments, players, rounds] = await Promise.all([
-    request('tournaments?select=name,status', {}, shareId), request('players?select=id,name,active', {}, shareId),
-    request('rounds?select=id,number,target&order=number.desc&limit=1', {}, shareId),
-  ])
-  const tournament = tournaments[0]
-  const round = rounds[0]
-  if (!tournament || !round) throw new Error('Tournament not found. Ask the organiser to check the link.')
-  const [matches, sitOuts] = await Promise.all([
-    request(`matches?select=round_id,court,team_a,team_b&order=court&round_id=eq.${encodeURIComponent(round.id)}`, {}, shareId),
-    request(`sit_outs?select=round_id,player_id&round_id=eq.${encodeURIComponent(round.id)}`, {}, shareId),
-  ])
-  const names = new Map<string, string>(players.map((p: { id: string; name: string }) => [p.id, p.name]))
-  return { ...tournament, number: round.number, target: round.target,
-    playerCount: players.filter((p: { active: boolean }) => p.active).length,
-    matches: matches.filter((m: { round_id: string }) => m.round_id === round.id).map((m: { court: number; team_a: string[]; team_b: string[] }) =>
-      ({ court: m.court, teamA: m.team_a.map(id => names.get(id) ?? 'Player'), teamB: m.team_b.map(id => names.get(id) ?? 'Player') })),
-    sitOuts: sitOuts.filter((s: { round_id: string }) => s.round_id === round.id).map((s: { player_id: string }) => names.get(s.player_id) ?? 'Player'),
+  const data = await getTournament(shareId)
+  const round = data.rounds.at(-1)!
+  return { name: data.name, status: data.status, number: round.number, target: round.target,
+    playerCount: data.players.filter(p => p.active).length,
+    matches: round.matches.map(match => ({ court: match.court,
+      teamA: match.teamA.map(id => playerName(round,id,data.players)), teamB: match.teamB.map(id => playerName(round,id,data.players)) })),
+    sitOuts: round.sitOuts.map(id => playerName(round,id,data.players)),
   }
 }
 
@@ -96,7 +88,22 @@ export interface TournamentData {
   id: string; name: string; courts: number; defaultTarget: number; status: 'active' | 'finished'
   players: TournamentPlayer[]; rounds: TournamentRound[]
 }
-export async function getTournament(shareId: string): Promise<TournamentData> {
+const snapshots = new Map<string, TournamentData>()
+const reads = new Map<string, Promise<TournamentData>>()
+export function cachedTournament(shareId: string): TournamentData | null { return snapshots.get(shareId) ?? null }
+export function getTournament(shareId: string): Promise<TournamentData> {
+  const pending = reads.get(shareId)
+  if (pending) return pending
+  const promise = readTournament(shareId).then(data => {
+    // A tiny memory-only cache accelerates links → tournament navigation.
+    if (snapshots.size >= 8 && !snapshots.has(shareId)) snapshots.delete(snapshots.keys().next().value!)
+    snapshots.set(shareId, data)
+    return data
+  }).finally(() => reads.delete(shareId))
+  reads.set(shareId, promise)
+  return promise
+}
+async function readTournament(shareId: string): Promise<TournamentData> {
   if (!validShare(shareId)) throw new Error('This tournament link doesn’t look right. Ask the organiser for a new link.')
   const data = await request('rpc/get_tournament_snapshot', { method: 'POST', body: JSON.stringify({ p_share_id: shareId }) }, shareId)
   if (!data?.id || !Array.isArray(data.rounds) || !data.rounds.length) throw new Error('Tournament not found. Ask the organiser to check the link.')
