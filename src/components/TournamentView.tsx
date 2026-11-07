@@ -79,8 +79,8 @@ export default function TournamentView() {
     <div className="connection-line" role="status" aria-live="polite">{!live && <span>● Reconnecting…</span>}{live && <span className="live-label">● Live</span>}</div>
     {loadError && <div className="notice" role="alert"><p>Couldn’t refresh. Your last confirmed results are still shown.</p><button className="button secondary" onClick={refresh}>Try again</button></div>}
     {error && <p className="notice" role="alert">{error}</p>}{message && <p className="action-status" role="status">{message}</p>}
-    <div role="tabpanel" id="tournament-panel" aria-labelledby={activeTab === 'round' ? 'round-tab' : 'leaderboard-tab'}>
-      {activeTab === 'leaderboard' ? <Leaderboard data={data} /> : <>
+    <div className="tournament-columns">
+    <div className={`round-column ${activeTab === 'round' ? 'phone-panel-active' : ''}`} id="round-panel" role="region" aria-label="Round courts">
         {historyReadOnly && <p className="history-note">{finished ? 'Tournament finished.' : 'Past round.'} Scores are read-only.</p>}
         <div className="draw-list">{selected.matches.map(match => {
           const result = match.result
@@ -94,9 +94,10 @@ export default function TournamentView() {
         })}</div>
         <section className="sit-outs"><h2>Sitting out</h2><p>{selected.sitOuts.length ? selected.sitOuts.map(id => playerName(selected,id,data.players)).join(', ') : 'Everyone is playing.'}</p>{selected.sitOuts.length > 0 && <p className="field-help">{formatPoints(selected.target / 2)} points each this round.</p>}</section>
         <p className="rotation-hint">Keep playing as long as you like. Around {Math.max(1,data.players.filter(p => p.active).length - 1)} rounds gives everyone a chance to partner each other.</p>
-      </>}
     </div>
-    <div className="tournament-dock"><div className="tournament-tabs" role="tablist" aria-label="Tournament view"><button role="tab" id="round-tab" aria-selected={activeTab === 'round'} aria-controls="tournament-panel" onClick={() => selectTab('round')}>Round</button><button role="tab" id="leaderboard-tab" aria-selected={activeTab === 'leaderboard'} aria-controls="tournament-panel" onClick={() => selectTab('leaderboard')}>Leaderboard</button></div>
+    <div id="standings-panel" className={`standings-column ${activeTab === 'leaderboard' ? 'phone-panel-active' : ''}`}><Leaderboard data={data} /></div>
+    </div>
+    <div className="tournament-dock"><div className="tournament-tabs" role="tablist" aria-label="Tournament view"><button role="tab" id="round-tab" aria-selected={activeTab === 'round'} aria-controls="round-panel" onClick={() => selectTab('round')}>Round</button><button role="tab" id="leaderboard-tab" aria-selected={activeTab === 'leaderboard'} aria-controls="standings-panel" onClick={() => selectTab('leaderboard')}>Leaderboard</button></div>
       {token && !finished && <div className="admin-bar"><div className="next-target"><div className="target-control"><label htmlFor="next-target">Next round’s points</label><select id="next-target" value={data.defaultTarget} disabled={busy} onChange={event => { void action('set_round_target',{p_target:Number(event.target.value)},'Next round’s target updated.') }}>{[...new Set([16,21,24,32,data.defaultTarget])].sort((a,b)=>a-b).map(target => <option key={target} value={target}>{target}</option>)}</select></div><button className="button end-tournament" disabled={busy} onClick={() => { setError(''); setConfirm('end') }}>End tournament</button></div>
         <button className="button primary" disabled={!scoresComplete || busy || !live} onClick={() => advance()}>{busy ? 'Saving…' : `Start round ${latest.number + 1}`}<span aria-hidden="true">→</span></button>
         {!scoresComplete && <div className="early-start"><span>{pending.length} {pending.length === 1 ? 'score' : 'scores'} to come</span><button disabled={busy || !live} onClick={() => { setError(''); setConfirm('early') }}>Start early…</button></div>}

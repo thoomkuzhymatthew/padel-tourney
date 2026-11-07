@@ -32,3 +32,4 @@
 - Show duplicate errors beside name inputs before requests, highlight both duplicate rows, and disable Start/Save for a known clash; compare names case-insensitively with collapsed whitespace on both client and server.
 - Guard future database name writes without rewriting existing player names or historical round snapshots.
 - Increase important status/helper text to 14px, reset tab scroll position, and reserve enough content space above the larger admin dock.
+- At viewport widths of 900px and above, show courts and sit-outs beside a sticky live leaderboard using a CSS grid; hide the view toggle and preserve the existing phone panels below that width.

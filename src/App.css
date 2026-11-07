@@ -246,3 +246,21 @@ button.court-score:hover { background: color-mix(in srgb,var(--pg-green) 5%,tran
 .player-list input[aria-invalid='true'], .add-player input[aria-invalid='true'] { border-width: 2px; border-color: var(--pg-terracotta); }
 .leaderboard .points-number { font-size: clamp(20px,6vw,25px); }
 @media(max-width:399px) { .next-target label { max-width: 155px; } }
+/* Both panels share the same data; width alone controls their presentation. */
+.round-column, .standings-column { display: none; }
+.phone-panel-active { display: block; }
+@media (min-width: 900px) {
+  .tournament-page { max-width: 1240px; padding-inline: 36px; padding-bottom: 56px; }
+  .tournament-page.with-admin-bar { padding-bottom: 250px; }
+  .tournament-columns { display: grid; grid-template-columns: minmax(0,1fr) minmax(350px,.9fr); gap: 40px; align-items: start; margin-top: 8px; }
+  .round-column, .standings-column { display: block; min-width: 0; }
+  .standings-column { position: sticky; top: 24px; max-height: calc(100dvh - 48px); overflow-y: auto; padding-left: 28px; border-left: 1px solid color-mix(in srgb,var(--pg-green) 25%,transparent); }
+  .with-admin-bar .standings-column { max-height: calc(100dvh - 270px); }
+  .standings-column .leaderboard-panel { padding-top: 24px; }
+  .tournament-tabs { display: none; }
+  .tournament-dock:not(:has(.admin-bar)) { display: none; }
+  .tournament-dock { max-width: 1240px; padding-inline: 36px; }
+  .admin-bar { display: grid; grid-template-columns: minmax(260px,1fr) minmax(240px,1fr); align-items: end; gap: 0 32px; padding-top: 0; }
+  .next-target { margin-bottom: 0; }
+  .early-start { grid-column: 2; }
+}

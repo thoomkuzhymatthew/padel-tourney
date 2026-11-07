@@ -82,6 +82,23 @@ test('two mobile sessions run, edit, reconnect and finish a live tournament', as
     await player.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click()
     await expect(admin.locator('.draw-list')).not.toContainText('Casey P')
 
+    // The same markup switches at the width breakpoint, including on touch devices.
+    for (const width of [900,1280]) {
+      await player.setViewportSize({width,height:900})
+      await expect(player.getByRole('heading',{name:'Leaderboard',exact:true})).toBeVisible()
+      await expect(player.getByRole('region',{name:'Court 1',exact:true})).toBeVisible()
+      await expect(player.locator('.tournament-tabs')).toBeHidden()
+      const courts=await player.locator('.round-column').boundingBox()
+      const standings=await player.locator('.standings-column').boundingBox()
+      expect(standings!.x).toBeGreaterThanOrEqual(courts!.x+courts!.width)
+      expect(await player.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+    }
+    await player.screenshot({path:'artifacts/wide-tournament.png',fullPage:false})
+    await player.setViewportSize({width:899,height:900})
+    await expect(player.locator('.tournament-tabs')).toBeVisible()
+    await expect(player.locator('.standings-column')).toBeHidden()
+    await player.setViewportSize({width:1280,height:900})
+
     // A save in one session reaches the other through Realtime.
     const connectionsBeforeSave = adminSockets
     const scoreStarted = Date.now()
@@ -89,6 +106,10 @@ test('two mobile sessions run, edit, reconnect and finish a live tournament', as
     await expect(admin.getByRole('region', { name: 'Court 1', exact: true }).locator('.court-score')).toContainText('15', { timeout: 5000 })
     console.log(`Cross-session score reflected within ${Date.now() - scoreStarted}ms including sheet interaction.`)
     await expect(admin.getByRole('region', { name: 'Court 1', exact: true }).locator('.score-audit')).toContainText('Entered by player')
+    await expect(player.locator('.standings-column .points-number').filter({hasText:/^15$/}).first()).toBeVisible()
+    await player.setViewportSize({width:390,height:844})
+    await expect(player.locator('.standings-column')).toBeHidden()
+    await expect(player.locator('.tournament-tabs')).toBeVisible()
     await admin.getByRole('region', { name: 'Court 1', exact: true }).getByRole('button', { name: 'Edit score for Court 1' }).click()
     const staleSheet = admin.getByRole('dialog')
     await staleSheet.getByRole('button', { name: 'Team A 18', exact: true }).click()

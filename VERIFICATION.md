@@ -47,3 +47,9 @@ The 390px review covers home, create, links, current and past rounds, leaderboar
 
 
 Polish release `a7a1408` was verified on production deployment `dpl_2jBgmQP3sD5KDaZor6RL8BBEqeFQ`. All six browser checks passed locally and on the public Vercel URL, including socket reuse during saves, duplicate controls, reduced-height roster editing, malformed-response recovery and zero external Google Fonts requests. The live two-session score update sample took 654ms including sheet interaction. All 23 unit tests, build, ESLint, database lint and SQL security checks passed. Test tournaments were cleaned up. The physical-phone/sunlight limit above still applies.
+
+## Wide-screen layout
+
+The tournament view uses a CSS width media query at 900px to display courts on the left and the live leaderboard on the right. Both panels use the existing snapshot/subscription; no extra API calls or device detection are introduced. The right panel stays sticky and scrolls internally for longer rosters; admin actions remain below the two columns. Below 900px the existing phone toggle and single-panel presentation are retained.
+
+Browser checks cover 900px and 1280px two-column positioning, hidden toggles, 899px and 390px single-panel behaviour, no horizontal overflow, and live point updates while the wide leaderboard remains visible. All six local browser checks, build and lint passed.
