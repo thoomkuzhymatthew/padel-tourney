@@ -58,3 +58,6 @@ Milestones 5 and 6 include interactive scoring, computed standings, live updates
 The Padel Genie application uses the Vercel project `padel-tourney-5q8r`, at https://padel-tourney-5q8r.vercel.app. The repository is also connected to another Vercel project; do not change its aliases or configuration when deploying this app. The confirmed public Supabase configuration is set for production and preview on the Padel Genie project. Local Vercel metadata and downloaded environment files are ignored.
 
 To run the same browser checks against the deployed app: `E2E_BASE_URL=https://padel-tourney-5q8r.vercel.app npm run test:e2e`. The two-session test covers next-draw roster edits, current and past score permissions, stale edits, target changes, compensation, live score propagation, reconnect recovery, early advancement, admin correction and final standings. Its synthetic tournament is removed afterward.
+
+
+See [VERIFICATION.md](VERIFICATION.md) for the local and live milestone 5/6 test results and the physical-device testing limit.
