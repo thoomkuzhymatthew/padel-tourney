@@ -34,3 +34,6 @@
 - Increase important status/helper text to 14px, reset tab scroll position, and reserve enough content space above the larger admin dock.
 - At viewport widths of 900px and above, show courts and sit-outs beside a sticky live leaderboard using a CSS grid; hide the view toggle and preserve the existing phone panels below that width.
 - Cap browser-saved tournament links at the five most recent creation timestamps, deduplicate resumed entries, and trim older uncapped lists on read; this never deletes Supabase tournaments.
+- Shared links expose generic app-level Open Graph metadata and an original 1200×630 preview image, keeping player names and admin credentials out of social previews.
+- Export only visible project conversation/tool history into ai/; exclude internal instructions/reasoning and redact credentials while keeping source files untouched.
+- Exclude AI transcripts and tooling from Tailwind class discovery so documentation cannot inflate production CSS.

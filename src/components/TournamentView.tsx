@@ -36,7 +36,6 @@ export default function TournamentView() {
   const actionInFlight = useRef(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
-  const menuRef = useRef<HTMLDetailsElement>(null)
   if (!data) return <main className="page narrow-page"><Link className="back-link" to="/">← Home</Link>{loadError ? <div className="notice" role="alert"><h1>Let’s check that link</h1><p>{loadError}</p><button className="button secondary" onClick={refresh}>Try again</button></div> : <p className="loading" role="status">Loading tournament…</p>}</main>
   const latest = data.rounds.at(-1)!
   const selected = data.rounds.find(round => round.number === roundNumber) ?? latest
@@ -72,7 +71,7 @@ export default function TournamentView() {
   function selectTab(next: 'round' | 'leaderboard') { setTab(next); window.scrollTo({ top: 0, behavior: 'instant' }); if (finished) setBrowseFinished(true) }
   return <main className={`page narrow-page tournament-page ${token && !finished ? 'with-admin-bar' : ''}`}>
     <div className="tournament-heading"><div><h1>{data.name}</h1><p className="round-subtitle">{finished ? 'Finished · ' : ''}Round {selected.number} · to {selected.target} points</p></div>
-      {token && <details ref={menuRef} className="tournament-menu"><summary aria-label="Tournament menu">···</summary><div><Link to={tournamentPath({ shareId, adminToken: token },true)}>Share links</Link></div></details>}
+      {token && <details className="tournament-menu"><summary aria-label="Tournament menu">···</summary><div><Link to={tournamentPath({ shareId, adminToken: token },true)}>Share links</Link></div></details>}
     </div>
     <div className="tournament-toolbar"><label className="round-picker">View round<select aria-label="View round" value={selected.number} onChange={event => { setRoundNumber(Number(event.target.value) === latest.number ? null : Number(event.target.value)); setTab('round'); if (finished) setBrowseFinished(true) }}>{[...data.rounds].reverse().map(round => <option value={round.number} key={round.id}>Round {round.number}{round.id === latest.id ? ' · latest' : ''}</option>)}</select></label>
       <button className="button secondary players-toggle" onClick={() => setPlayersOpen(true)}>Players</button></div>
