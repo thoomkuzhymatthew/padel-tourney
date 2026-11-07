@@ -19,3 +19,4 @@
 - Repeated whitespace, outer whitespace and letter case do not distinguish player names; no fuzzy matching or automatic player merging is used.
 - Existing names are left intact by the duplicate-guard migration; validation applies to subsequent inserts and name changes.
 - The in-memory navigation cache contains public tournament snapshots only and is revalidated; admin credentials are never placed in it.
+- Browser-saved tournament links have no timed expiry. Only five recent entries are retained on this device; older tournaments remain accessible through their existing links.

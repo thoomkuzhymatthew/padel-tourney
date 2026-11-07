@@ -36,7 +36,7 @@ function Home() {
       <div className="court-feature"><CourtIllustration /><p>Different partners.<br /><strong>Everyone in the game.</strong></p></div>
     </section>
     {tournaments.length > 0 && <section className="saved-section" aria-labelledby="saved-heading"><h2 id="saved-heading">Your tournaments</h2>
-      <p className="section-note">Saved on this device.</p>
+      <p className="section-note">Your 5 most recent tournaments on this device.</p>
       <ul className="saved-list">{tournaments.map(t => <li key={t.shareId}><div><h3>{t.name}</h3><p>{new Date(t.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</p></div>
         <Link className="button secondary" to={tournamentPath(t, true)}>Resume <span aria-hidden="true">→</span></Link></li>)}</ul>
     </section>}
