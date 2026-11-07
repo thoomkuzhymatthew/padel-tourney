@@ -26,3 +26,7 @@ dist-ssr
 # Local credentials (including environment-specific variants)
 .env
 .env.*
+
+# Supabase CLI machine-local connection metadata
+supabase/.temp/
+supabase/.branches/
