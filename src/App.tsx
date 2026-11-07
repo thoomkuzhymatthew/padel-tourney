@@ -5,6 +5,7 @@ import { defaultTournamentName, normalizeName, splitNames, validateNames } from 
 import { backendConfigured, createTournament, loadTournament } from './lib/tournament-api'
 import type { TournamentSummary } from './lib/tournament-api'
 import { readTournaments, saveTournament, tournamentPath, validToken } from './lib/tournament-storage'
+import TournamentView from './components/TournamentView'
 import './App.css'
 
 function Brand() {
@@ -205,18 +206,6 @@ function LinksScreen() {
   </main>
 }
 
-function TournamentHandoff() {
-  const { shareId, summary, error, retry } = useTournament()
-  const location = useLocation()
-  const isAdmin = location.pathname.endsWith('/admin') && validToken(location.hash.slice(1))
-  if (!summary || error) return <LoadState error={error} retry={retry} />
-  return <main className="page narrow-page draw-page"><div className="draw-top"><Link className="back-link" to="/">← Home</Link>{isAdmin && <Link className="back-link" to={tournamentPath({ shareId, adminToken: location.hash.slice(1) }, true)}>Share links ↗</Link>}</div>
-    <p className="intro-label">{isAdmin ? 'Your tournament' : 'Today’s tournament'}</p><h1>{summary.name}</h1>
-    <div className="round-heading"><h2>Round {summary.number}</h2><span>{summary.target} points per match</span></div>
-    <div className="draw-list">{summary.matches.map(match => <section className="court-draw" key={match.court}><h3>Court <strong>{match.court}</strong></h3><div className="teams"><p>{match.teamA.map(name => <span key={name}>{name}</span>)}</p><span className="versus">vs</span><p>{match.teamB.map(name => <span key={name}>{name}</span>)}</p></div></section>)}</div>
-    {summary.sitOuts.length > 0 && <section className="sit-outs"><h2>Sitting out</h2><p>{summary.sitOuts.join(', ')}</p><p className="field-help">{summary.target / 2} points each this round.</p></section>}
-  </main>
-}
 
 function NotFound() {
   return <main className="page narrow-page"><h1>Out of bounds.</h1><p>This page doesn’t exist. Head home to create or resume a tournament.</p><Link className="button primary" to="/">Back to home</Link></main>
@@ -237,7 +226,7 @@ function App() {
   return <BrowserRouter><RouteFocus /><header className="site-header"><div className="header-inner"><Brand /><span className="header-note">Made for the court.</span></div></header><Routes>
     <Route path="/" element={<Home />} /><Route path="/create" element={<Create />} />
     <Route path="/t/:shareId/links" element={<LinksScreen />} />
-    <Route path="/t/:shareId/admin" element={<TournamentHandoff />} /><Route path="/t/:shareId" element={<TournamentHandoff />} />
+    <Route path="/t/:shareId/admin" element={<TournamentView />} /><Route path="/t/:shareId" element={<TournamentView />} />
     <Route path="*" element={<NotFound />} />
   </Routes><footer className="site-footer"><span>Padel Genie</span><span>A little less organising. A lot more padel.</span></footer></BrowserRouter>
 }

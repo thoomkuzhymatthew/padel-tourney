@@ -9,7 +9,11 @@ A mobile-first web app for running a padel Americano: add players and courts, ge
 - Generate and persist the first round through the secured `create_tournament` RPC.
 - Copy/share separate player and admin links, with native sharing and manual-copy fallbacks.
 - Resume tournaments saved on this browser; refresh the links screen without losing access.
-- Open the admin route to see the saved round draw. Player links show the same read-only draw. Interactive scoring and live standings are milestone 5; organiser controls are milestone 6.
+- One shared tournament layout: current and past rounds, a no-keyboard score sheet, individual standings and Realtime updates.
+- Players can enter or correct current-round scores and browse past rounds read-only. Admins can edit any past result, advance early with a confirmed 0–0 forfeiture, change the next target, and end the tournament.
+- Roster changes work during active rounds and apply to the next draw. New players show “Joins from round N”; current and historical draws retain their original names.
+- An admin dock keeps next-round controls reachable; the end action lives in a menu. Final standings appear on both links when the tournament ends.
+- An open score sheet detects remote edits; stale saves are rejected server-side. Disconnected sessions keep their confirmed results, show “Reconnecting…”, and refetch after the subscription rejoins.
 
 ## Run locally
 
@@ -28,7 +32,7 @@ Run `npm run dev`. Vercel needs the same public environment variables when deplo
 
 - `npm test`: 22 seeded pure-logic tests for pairing, sit-outs, scoring, historical edits, target changes, roster changes and tie-breaks.
 - `npm run lint` and `npm run build`: lint and production type/build checks.
-- `npx playwright install chromium`, then `npm run test:e2e`: four browser checks at 390×844 and desktop, including actual Supabase creation, resume, double-submit protection, RPC failure, blocked storage, and copy/share fallbacks. These tests use the configured project and authenticated Supabase CLI to remove their synthetic fixtures; run them against a development project.
+- `npx playwright install chromium`, then `npm run test:e2e`: five browser checks at 390×844 and desktop, including actual Supabase creation, resume, double-submit protection, RPC failure, blocked storage, copy/share fallbacks, and a full two-session tournament lifecycle. These tests use the configured project and authenticated Supabase CLI to remove their synthetic fixtures; run them against a development project.
 - Browser screenshots are generated under ignored `artifacts/`. Traces and automatic failure screenshots are disabled to avoid retaining private links.
 
 The database has versioned migrations, RLS, RPCs, a local seed, and SQL/API security checks. See [supabase/README.md](supabase/README.md) for migration commands, authorization details and the client contract. Local Docker verification is separate from the hosted tests already run.
@@ -47,4 +51,10 @@ See [ASSUMPTIONS.md](ASSUMPTIONS.md) and [DECISIONS.md](DECISIONS.md) for the im
 
 Accounts/logins add friction to a courtside tool. Mexicano is the natural next format after Americano. Timed games and sets use different scoring models. Voice input, payments, leagues, cross-tournament profiles/history and native apps are outside this trial’s scope. Email recovery is deferred; local recovery and copying the admin link cover this milestone.
 
-Next: score entry, computed standings and live updates (milestone 5), then organiser controls (milestone 6), mobile polish and deployment verification. This milestone has not deployed the frontend.
+Milestones 5 and 6 include interactive scoring, computed standings, live updates and organiser controls. Remaining work is the wider polish/real-phone review and final handover. Browser tests emulate independent mobile devices; physical phone testing still needs a human.
+
+## Live deployment
+
+The Padel Genie application uses the Vercel project `padel-tourney-5q8r`, at https://padel-tourney-5q8r.vercel.app. The repository is also connected to another Vercel project; do not change its aliases or configuration when deploying this app. The confirmed public Supabase configuration is set for production and preview on the Padel Genie project. Local Vercel metadata and downloaded environment files are ignored.
+
+To run the same browser checks against the deployed app: `E2E_BASE_URL=https://padel-tourney-5q8r.vercel.app npm run test:e2e`. The two-session test covers next-draw roster edits, current and past score permissions, stale edits, target changes, compensation, live score propagation, reconnect recovery, early advancement, admin correction and final standings. Its synthetic tournament is removed afterward.

@@ -18,3 +18,10 @@
 - Disable repeated submissions and never automatically retry creation; explain uncertain outcomes without clearing the form.
 - Keep browser-test screenshots and reports ignored and disable traces because private admin links may otherwise be retained in artifacts.
 - The milestone 4 handoff shows the stored round draw on both public and admin routes, keeping shared links usable before interactive tournament controls are added.
+- Use one tournament layout for both links, adding an admin dock and menu only in admin mode; both modes can browse historical rounds.
+- Add a share-scoped, security-invoker snapshot RPC for a consistent view of the full tournament without reading private credentials.
+- Preserve current and historical draws with round name snapshots; additions/removals and pending renames affect the next generated round.
+- Use expected updated_at values for score saves and reject stale writes server-side; an open score sheet requires review when another device changes it.
+- Subscribe through the small Realtime client package; debounce invalidations, refetch on rejoin/focus, and rebuild the subscription after an offline/online transition.
+- Keep confirmed results visible while reconnecting and stop advancement until the live subscription returns.
+- Verify cross-device behaviour with independent 390×844 mobile browser contexts locally and against the Vercel deployment; physical phones require a human check.

@@ -1,23 +1,33 @@
 import { generateRound } from './rotation'
 import { validShare, validToken } from './tournament-storage'
 import type { SavedTournament } from './tournament-storage'
-import type { Player } from './types'
+import type { Player, Match, Round } from './types'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const publicKey = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY) as string | undefined
-export const backendConfigured = Boolean(url && publicKey)
+export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined
+export const supabasePublicKey = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY) as string | undefined
+export const backendConfigured = Boolean(supabaseUrl && supabasePublicKey)
 
 async function request(path: string, options: RequestInit = {}, shareId?: string) {
-  if (!url || !publicKey) throw new Error('Tournament setup is unavailable. Please try again later.')
-  const response = await fetch(`${url.replace(/\/$/, '')}/rest/v1/${path}`, {
+  if (!supabaseUrl || !supabasePublicKey) throw new Error('Tournament setup is unavailable. Please try again later.')
+  const response = await fetch(`${supabaseUrl.replace(/\/$/, '')}/rest/v1/${path}`, {
     ...options,
-    headers: { apikey: publicKey, ...(publicKey.startsWith('eyJ') ? { Authorization: `Bearer ${publicKey}` } : {}), 'Content-Type': 'application/json',
+    headers: { apikey: supabasePublicKey, ...(supabasePublicKey.startsWith('eyJ') ? { Authorization: `Bearer ${supabasePublicKey}` } : {}), 'Content-Type': 'application/json',
       ...(shareId ? { 'x-tournament-share-id': shareId } : {}), ...options.headers },
     referrerPolicy: 'no-referrer',
     signal: AbortSignal.timeout(25000),
   })
-  if (!response.ok) throw new Error('We couldn’t save that. Check your connection and try again.')
-  return response.json()
+  const text = await response.text()
+  const data = text ? JSON.parse(text) : null
+  if (!response.ok) {
+    const code = data?.code ?? ''
+    const messages: Record<string, string> = {
+      '40001': 'This score changed on another device. Review the latest score before saving.',
+      '42501': 'This action needs a valid admin link, or the match is no longer editable.',
+      '23505': 'That name is already in use. Add an initial to tell players apart.',
+    }
+    throw new TournamentError(messages[code] ?? 'Couldn’t save that change. Refresh and try again.', code)
+  }
+  return data
 }
 
 export async function createTournament(input: { name: string; names: string[]; courts: number; target: number }): Promise<{ tournament: SavedTournament; summary: TournamentSummary }> {
@@ -72,4 +82,29 @@ export async function loadTournament(shareId: string): Promise<TournamentSummary
       ({ court: m.court, teamA: m.team_a.map(id => names.get(id) ?? 'Player'), teamB: m.team_b.map(id => names.get(id) ?? 'Player') })),
     sitOuts: sitOuts.filter((s: { round_id: string }) => s.round_id === round.id).map((s: { player_id: string }) => names.get(s.player_id) ?? 'Player'),
   }
+}
+
+
+export class TournamentError extends Error {
+  code: string
+  constructor(message: string, code: string) { super(message); this.code = code }
+}
+export interface TournamentPlayer extends Player { pendingName: string | null }
+export interface TournamentMatch extends Match { id: string; enteredBy: 'admin' | 'player' | null; updatedAt: string }
+export interface TournamentRound extends Round { id: string; status: string; names: Record<string, string>; matches: TournamentMatch[] }
+export interface TournamentData {
+  id: string; name: string; courts: number; defaultTarget: number; status: 'active' | 'finished'
+  players: TournamentPlayer[]; rounds: TournamentRound[]
+}
+export async function getTournament(shareId: string): Promise<TournamentData> {
+  if (!validShare(shareId)) throw new Error('This tournament link doesn’t look right. Ask the organiser for a new link.')
+  const data = await request('rpc/get_tournament_snapshot', { method: 'POST', body: JSON.stringify({ p_share_id: shareId }) }, shareId)
+  if (!data?.id || !Array.isArray(data.rounds) || !data.rounds.length) throw new Error('Tournament not found. Ask the organiser to check the link.')
+  return data
+}
+export async function tournamentAction(shareId: string, action: string, args: Record<string, unknown>) {
+  return request(`rpc/${action}`, { method: 'POST', body: JSON.stringify({ p_share_id: shareId, ...args }) }, shareId)
+}
+export function playerName(round: TournamentRound, playerId: string, players: TournamentPlayer[]): string {
+  return round.names[playerId] ?? players.find(player => player.id === playerId)?.name ?? 'Player'
 }

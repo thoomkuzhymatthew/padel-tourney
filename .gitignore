@@ -35,3 +35,8 @@ supabase/.branches/
 playwright-report/
 test-results/
 artifacts/
+
+# Vercel local project configuration
+.vercel/
+.vercel
+.env*
