@@ -84,3 +84,7 @@ Pure TypeScript lives in `src/lib/rotation.ts` and `src/lib/scoring.ts`, with sh
 Run `npm install`, then `npm test` for the Section 6 scenarios, `npm run lint`, and `npm run build`. Use `npm run test:watch` while editing. Tests use seeded randomness for repeatable rotation checks, including 8 players over 7 rounds and 12 players over 11 rounds, every required sit-out roster size, score edits, roster changes, and leaderboard tie-breaks.
 
 Environment files (`.env` and `.env.*`) are ignored. Configure local credentials yourself; do not commit secrets. Only Supabase’s publishable/anon key may be used in frontend configuration.
+
+## Tournament database (milestone 3)
+
+Versioned schema, RLS, RPC migrations, a local seed, and database verification scripts are in [`supabase/`](supabase/README.md). Admin credentials are stored server-side only as hashes in an unexposed private schema. Public reads require the tournament share header, and all client writes go through validated RPCs. See that guide for the client contract and deployment/test commands.

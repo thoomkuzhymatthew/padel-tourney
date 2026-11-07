@@ -5,3 +5,7 @@
 - An unscored match contributes nothing until scored or explicitly forfeited; a confirmed early advance records a separate 0–0 forfeiture rather than a normal score.
 - Forfeited matches count as games played, with no wins or points difference; a later score override replaces the forfeiture.
 - Round targets are positive integers; match scores are integers, while compensation may include half points.
+- Database names are trimmed and limited to 60 characters per player and 100 per tournament; duplicate player names ignore case and surrounding whitespace, including inactive players.
+- The supported roster is 4–40 active players and 1–10 courts, matching the brief’s approximate upper size.
+- Between rounds means the latest round is complete; newly added players join the following round, and removal cannot reduce the active roster below four.
+- Admins may correct past scores after ending a tournament; player writes stop once it is finished.
