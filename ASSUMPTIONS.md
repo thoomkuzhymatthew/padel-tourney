@@ -9,3 +9,6 @@
 - The supported roster is 4–40 active players and 1–10 courts, matching the brief’s approximate upper size.
 - Between rounds means the latest round is complete; newly added players join the following round, and removal cannot reduce the active roster below four.
 - Admins may correct past scores after ending a tournament; player writes stop once it is finished.
+- Resume reopens the tournament’s links screen; Open tournament goes directly to its admin route.
+- If creation’s response is interrupted, the tournament may already exist; do not automatically retry the non-idempotent creation RPC.
+- The milestone 4 admin/player destination is a real read-only round draw; interactive scoring and standings remain milestone 5.

@@ -1,90 +1,50 @@
-# React + TypeScript + Vite
+# Padel Genie Americano
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A mobile-first web app for running a padel Americano: add players and courts, generate fair rotations, and share tournament links. Designed at 390px for use beside a court, using Padel Genie’s court green, terracotta, cream, Inter and Bricolage Grotesque.
 
-Currently, two official plugins are available:
+## Current functionality
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Create a tournament with 4–40 players, 1–10 courts, and 16/21/24/32 points per match.
+- Enter names quickly with Enter, or paste a comma/newline-separated list. Edit or remove names before starting.
+- Generate and persist the first round through the secured `create_tournament` RPC.
+- Copy/share separate player and admin links, with native sharing and manual-copy fallbacks.
+- Resume tournaments saved on this browser; refresh the links screen without losing access.
+- Open the admin route to see the saved round draw. Player links show the same read-only draw. Interactive scoring and live standings are milestone 5; organiser controls are milestone 6.
 
-## React Compiler
+## Run locally
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Use Node 22+ and npm. Run `npm install`, then create an ignored `.env.local` in the repository root:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```dotenv
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLIC_KEY
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+`VITE_SUPABASE_ANON_KEY` is also supported for a legacy anon key. **Never use a service-role/secret key in any Vite variable.** Only the URL and public key belong in the frontend.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Run `npm run dev`. Vercel needs the same public environment variables when deployed. The app uses browser routing; `vercel.json` rewrites routes to `index.html`.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Validation
 
-```
+- `npm test`: 22 seeded pure-logic tests for pairing, sit-outs, scoring, historical edits, target changes, roster changes and tie-breaks.
+- `npm run lint` and `npm run build`: lint and production type/build checks.
+- `npx playwright install chromium`, then `npm run test:e2e`: four browser checks at 390×844 and desktop, including actual Supabase creation, resume, double-submit protection, RPC failure, blocked storage, and copy/share fallbacks. These tests use the configured project and authenticated Supabase CLI to remove their synthetic fixtures; run them against a development project.
+- Browser screenshots are generated under ignored `artifacts/`. Traces and automatic failure screenshots are disabled to avoid retaining private links.
 
+The database has versioned migrations, RLS, RPCs, a local seed, and SQL/API security checks. See [supabase/README.md](supabase/README.md) for migration commands, authorization details and the client contract. Local Docker verification is separate from the hosted tests already run.
 
-## Tournament core (milestone 2)
+## Decisions and recovery
 
-Pure TypeScript lives in `src/lib/rotation.ts` and `src/lib/scoring.ts`, with shared types in `src/lib/types.ts`. Rotation takes the roster, stored round history, court count, target, and optional random source. It returns the next round without mutating history. Persist that round once when the database milestone is implemented.
+Pure TypeScript rotation/scoring functions live in `src/lib/`. The leaderboard is derived from round results and sit-out compensation. Server-side RPCs validate mutations, and public reads require a tournament-specific share header. Admin tokens are random bearer credentials, stored on the server only as hashes in an unexposed private schema.
 
-`scoreMatch` validates Team A’s score and calculates Team B’s complement. `calculateLeaderboard` derives standings from results and each round’s sit-outs; removed players retain results, late joiners receive no retrospective compensation. Pending and explicitly forfeited matches have distinct states. Server authorization and persistence belong to milestone 3.
+The organiser’s browser intentionally retains the plaintext admin credential in localStorage for recovery. Admin URLs put it in the fragment, never a query string. Links are excluded from application logs and referrers. If storage fails, links remain available and the organiser is prompted to save the admin link. Creation is a single POST with no automatic retry; an interrupted response may have created a tournament, so the error explains that uncertainty.
 
-Run `npm install`, then `npm test` for the Section 6 scenarios, `npm run lint`, and `npm run build`. Use `npm run test:watch` while editing. Tests use seeded randomness for repeatable rotation checks, including 8 players over 7 rounds and 12 players over 11 rounds, every required sit-out roster size, score edits, roster changes, and leaderboard tie-breaks.
+The links screen can render from a successful creation response even if a follow-up read fails. “Open tournament” points directly to `/t/{shareId}/admin#{adminToken}`; the links screen has its own `/t/{shareId}/links#{adminToken}` route. Resume reopens the links screen.
 
-Environment files (`.env` and `.env.*`) are ignored. Configure local credentials yourself; do not commit secrets. Only Supabase’s publishable/anon key may be used in frontend configuration.
+See [ASSUMPTIONS.md](ASSUMPTIONS.md) and [DECISIONS.md](DECISIONS.md) for the implementation choices and [AGENTS.md](AGENTS.md) for the brief.
 
-## Tournament database (milestone 3)
+## Deliberate omissions and next steps
 
-Versioned schema, RLS, RPC migrations, a local seed, and database verification scripts are in [`supabase/`](supabase/README.md). Admin credentials are stored server-side only as hashes in an unexposed private schema. Public reads require the tournament share header, and all client writes go through validated RPCs. See that guide for the client contract and deployment/test commands.
+Accounts/logins add friction to a courtside tool. Mexicano is the natural next format after Americano. Timed games and sets use different scoring models. Voice input, payments, leagues, cross-tournament profiles/history and native apps are outside this trial’s scope. Email recovery is deferred; local recovery and copying the admin link cover this milestone.
+
+Next: score entry, computed standings and live updates (milestone 5), then organiser controls (milestone 6), mobile polish and deployment verification. This milestone has not deployed the frontend.

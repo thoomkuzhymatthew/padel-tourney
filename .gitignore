@@ -30,3 +30,8 @@ dist-ssr
 # Supabase CLI machine-local connection metadata
 supabase/.temp/
 supabase/.branches/
+
+# Browser test artifacts can contain private links
+playwright-report/
+test-results/
+artifacts/
